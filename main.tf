@@ -15,32 +15,21 @@ resource "docker_image" "nodered_image" {
   name = "nodered/node-red:latest"
 }
 resource "random_pet" "random" {
+  count  = 2
   length = 2
-
-
 }
-resource "random_pet" "randomtwo" {
-  length = 2
 
-
-}
 resource "docker_container" "nodered_container" {
-  name  = join("_", ["nodered", random_pet.random.id])
+  count = 2
+  name  = join("_", ["nodered", random_pet.random[count.index].id])
   image = docker_image.nodered_image.latest
   ports {
     internal = 1800
-    external = 1800 #defaults and match dockerfile. 
+
   }
 }
-resource "docker_container" "nodered_container2" {
-  name  = join("_", ["nodered", random_pet.randomtwo.id])
-  image = docker_image.nodered_image.latest
-  ports {
-    internal = 1800
-    #get rid of external, docker will map internal 1800 to a random external for you 
-  }
-}
-output "IP_and_port" {
-  value       = join(":", [docker_container.nodered_container.ip_address, docker_container.nodered_container.ports[0].external]) #joining IP and port with :
-  description = "prints IP address of nodered container"
+output "ip_port" {
+  value       = [for i in docker_container.nodered_container[*] : join(":", [i.ip_address], i.ports[*]["external"])]
+  description = "ip address with exposed port"
+
 }
